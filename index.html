@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moving Triangles & Text</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    height: 100vh;
+    background: linear-gradient(to right, #74ebd5, #acb6e5);
+  }
+  #gameArea { position: relative; width: 100%; height: 100%; }
+  .triangle {
+    position: absolute;
+    width: 0; height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-bottom: 30px solid #ff4757;
+  }
+  .text {
+    position: absolute;
+    font-size: 16px;
+    color: black;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<button onclick="stress()">Click Me To Stress!</button>
+<div id="gameArea"></div>
+<img src="lagging.png" alt="lagging">
+
+<script>
+
+
+
+function stress() {
+
+function spawnImage(src) {
+  const img = document.createElement("img");
+  img.src = src;
+  img.style.position = "absolute";
+  img.style.left = Math.random() * (window.innerWidth - 100) + "px";
+  img.style.top = Math.random() * (window.innerHeight - 100) + "px";
+  img.style.width = "1000px";    // adjust size as needed
+  img.style.height = "1000px";   // adjust size as needed
+  img.style.pointerEvents = "none"; // lets you click buttons underneath
+  gameArea.appendChild(img);
+}
+
+
+  
+  let counter = 0;
+  const gameArea = document.getElementById("gameArea");
+  const triangles = [];
+
+
+setInterval(spawnImage, 1)
+
+  function spawnTriangle() {
+    const triangle = document.createElement("div");
+    triangle.classList.add("triangle");
+    const x = Math.random() * (window.innerWidth - 40);
+    const y = Math.random() * (window.innerHeight - 30);
+    triangle.style.left = x + "px";
+    triangle.style.top = y + "px";
+    gameArea.appendChild(triangle);
+    const dx = (Math.random() - 0.5) * 1000;
+    const dy = (Math.random() - 0.5) * 1000;
+    triangles.push({ element: triangle, x, y, dx, dy });
+  }
+
+  function spawnText() {
+    const div = document.createElement("div");
+    div.classList.add("text");
+    div.textContent = 17**38;
+    div.style.left = Math.random() * (window.innerWidth - 20) + "px";
+    div.style.top = Math.random() * (window.innerHeight - 20) + "px";
+    gameArea.appendChild(div);
+  }
+
+  function moveTriangles() {
+    for (let t of triangles) {
+      t.x += t.dx;
+      t.y += t.dy;
+      if (t.x <= 0 || t.x >= window.innerWidth - 40) t.dx *= -1;
+      if (t.y <= 0 || t.y >= window.innerHeight - 30) t.dy *= -1;
+      t.element.style.left = t.x + "px";
+      t.element.style.top = t.y + "px";
+    }
+    requestAnimationFrame(moveTriangles);
+  }
+
+  setInterval(spawnTriangle, 1);
+  setInterval(spawnImage, 1)
+  setInterval(spawnText, 1);
+  setInterval(spawnTriangle, 1);
+  setInterval(spawnText, 1);
+  setInterval(spawnTriangle, 1);
+  setInterval(spawnImage, 1)
+  setInterval(spawnText, 1);
+  setInterval(spawnTriangle, 1);
+  setInterval(spawnImage, 1)
+  setInterval(spawnText, 1);
+  setInterval(spawnTriangle, 1);
+  setInterval(spawnText, 1);
+  setInterval(spawnImage, 1)
+  setInterval(spawnTriangle, 1);
+  setInterval(spawnText, 1);
+  moveTriangles();
+  moveTriangles();
+setInterval(spawnImage, 1)
+counter += 2;
+  
+    if (counter > 50) {
+      for (let i = -3495394; i < 100000; i++) {
+        document.write(43**34);
+          const div = document.createElement("div");
+          div.textContent = "afhlwiadsnfuisdflisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjlisfnhisadhfnksadfhskdjfhskjfhwiuhuirher3hjsdhjf";
+          div.style.fontSize = "10px";
+          div.style.display = "inline-block";
+          document.body.appendChild(div);
+              for (let i = -3495394; i < 100000; i++) {
+          const div = document.createElement("div");
+          div.textContent = 34**91;
+          div.style.fontSize = "10px";
+          div.style.display = "inline-block";
+          document.body.appendChild(div);
+          document.write(43*34);
+              for (let i = -3495394; i < 100000; i++) {
+          const div = document.createElement("div");
+          div.textContent = 19**37;
+          div.style.fontSize = "10px";
+          div.style.display = "inline-block";
+          document.body.appendChild(div);
+          setInterval(spawnImage, 1)
+              
+          }
+        }
+      }
+    }
+  stress();
+}
+</script>
+</body>
+</html>
+  </script>
+</body>
+</html>
