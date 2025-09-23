@@ -1,161 +1,1838 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="style.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moving Triangles & Text</title>
-<style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    height: 100vh;
-    background: linear-gradient(to right, #74ebd5, #acb6e5);
-  }
-  #gameArea { position: relative; width: 100%; height: 100%; }
-  .triangle {
-    position: absolute;
-    width: 0; height: 0;
-    border-left: 20px solid transparent;
-    border-right: 20px solid transparent;
-    border-bottom: 30px solid #ff4757;
-  }
-  .text {
-    position: absolute;
-    font-size: 16px;
-    color: black;
-    pointer-events: none;
-  }
-</style>
+
 </head>
 <body>
-<div id="gameArea"></div>
-<img src="lagging.png" alt="lagging">
 
-<script>
+<h1>Shape Clicker</h1>
+<div id="score"> Score: 0</div> 
+<div id="multiplier">×1</div>
 
+<button onclick="addPoint()">Click Me!</button>
+<!-- <a href="https://ayzombie.github.io/LAG-MACHINE/" target="_blank">
+  <button>click me for 69 quintillion score!</button>
+</a> -->
+<div id="cps">CPS: 0</div>
 
+<div class="shop">
+  <h2>Shop</h2>
+  <button id="upgradeBtn" onclick="buyUpgrade()">Upgrade Click (+1) — Cost: 10</button>
+  <button id="autoClickerBtn" onclick="buyAutoClicker()">Upgrade Speed — Cost: 50</button>
+  <button id="ballSpawnerBtn" onclick="buyBallSpawner()">Add Ball — Cost: 100</button>
+  <button id="squareSpawnerBtn" onclick="buySquareSpawner()">Add Square — Cost: 200</button>
+  <button id="triangleSpawnerBtn" onclick="buyTriangleSpawner()">Add Triangle — Cost: 500</button>
+  <button id="incomeBtn" onclick="buyIncome()">Increase Value — Cost: 1000</button>
+  <button id="rebirth" onclick="rebirth()">REBIRTH — COST: 1000000</button>
+  <button onclick="restartGame()">Restart Game</button>
 
-function stress() {
+</div>
 
-function spawnImage(src) {
-  const img = document.createElement("img");
-  img.src = src;
-  img.style.position = "absolute";
-  img.style.left = Math.random() * (window.innerWidth - 100) + "px";
-  img.style.top = Math.random() * (window.innerHeight - 100) + "px";
-  img.style.width = "100px";    // adjust size as needed
-  img.style.height = "100px";   // adjust size as needed
-  img.style.pointerEvents = "none"; // lets you click buttons underneath
-  gameArea.appendChild(img);
+<div id="sidebar">
+  <label for="num">Enter a Number for Gifts!</label>
+  <input type="number" id="num" placeholder="Type a number">
+  <button id="submit">Submit</button>
+</div>
+<canvas id="gameCanvas"></canvas>
+
+<p id="pathLabel"> PATHS: </p>
+
+<button id="waterPathBtn" onclick="waterPath()">Water Path</button>
+
+<button id="MoreUpgradesButton" onclick="showButtons()">Paths</button>
+<button id="ToggleSnakeBtn" onclick="toggleSnake()">Toggle Snake</button>
+<button id="rain" onclick="buyRain()">Rain - Cost: 1,000,000</button>
+<button id="snakeBtn" onclick="buySnake()">Snake — Cost: 4,000,000</button>
+<button id="cloudsBtn" onclick="buyClouds()">Clouds — Cost: 5,000,000</button>
+<button id="fishSpawnerBtn" onclick="buyFishSpawner()">Add Fish — Cost: 10,000,000</button>
+<button id="sharkSpawnerBtn" onclick="buySharkSpawner()">Add Shark — Cost: 15,000,000</button>
+<button id="lightningBtn" onclick="buyLightning()">Lightning — Cost: 20,000,000</button> 
+<button id="upgradeSnakeBtn" onclick="upgradeSnake()">Snake Upgrade — Cost: 25,000,000</button>
+<button id="lightningUpgradeBtn" onclick="upgradeLightning()">Upgrade Lightning — Cost: 60,000,000</button>
+
+<script>  //start of javascript variables!!!!!!!  
+//#region
+if ('scrollRestoration' in history) {   // to go to top when start
+  history.scrollRestoration = 'manual';
 }
 
+window.onload = function() {
+  window.scrollTo(0, 0);
+};
 
-  
-  let counter = 0;
-  const gameArea = document.getElementById("gameArea");
-  const triangles = [];
+const SAVE_VERSION = "2.7"; // bump this whenever you want a reset
+
+let lastTime = performance.now();
+let frames = 0;
+let fps = 0;
+let fpsCounter;
+
+let score = 0;
+// CPS tracking (declare once)
+let cps = 0;
+let cpsHistory = [];
+let pointsThisInterval = 0; 
+// get the CPS element (your HTML uses id="cps")
+const cpsEl = document.getElementById("cps");
+
+let pointsPerClick = 1;
+let upgradeCost = 10;
+
+let autoClickerLevel = 1;
+let autoClickerCost = 50;
+
+let ballSpawnerCount = 0;
+let ballSpawnerCost = 100;
+let squareValue = 2;
+
+let squareSpawnerCount = 0;
+let squareSpawnerCost = 200;
+
+let triangleSpawnerCount = 0;
+let triangleSpawnerCost = 500;
+let triangleValue = 5;
+
+let incomeCost = 1000;
+let income = 1;
+
+let fishCount = 0;
+let fishSpawnerCost = 10000000; //10mil
+let fishValue = 500;
+
+let sharkSpawnerCount = 0;
+let sharkSpawnerCost = 15000000; // adjust price
+let sharkValue = 1000;        // points per bounce
+
+let balls = [];
+let squares = [];
+let triangles = [];
+let popups = [];
+let raindrops = [];
+let sharks = [];
+let clouds = [];
+let lightnings = [];
+let fish = [];
+
+let rebirthCost = 100000;
+let growingCostMulti = 1.5;
+let multi = 1;
+
+let pickedPath = false;
+let pickedWater = false;
+
+let unlockedMoreUpgrades = false;
+let rainSpeed = 100;
+let boughtRain = false;
+let rainInterval = null;
+let snake = null;
+let boughtSnake = false;
+let snakeSpawnerCost = 4000000;
+let boughtClouds = false;
+let boughtLightning = false;
+let lightningInterval = 0.01;
+let upgradedLightning = false;
+let upgradedSnake = false;
+let showSnake = false;
+
+let shockedMultiplier = 50;
+
+let prestigeLevel = 0;        // how many times prestiged
+let prestigePoints = 0;       // total prestige points earned
+let prestigeBonus = 1;        // multiplier to everything from prestige
+let prestigeCost = 1e8;       // base cost to prestige (100 million, adjust as needed)
+
+document.body.style.background = "white";
+document.getElementById("pathLabel").style.display = "none";  //PATHS: label
+document.getElementById("waterPathBtn").style.display = "none";
+
+document.getElementById("MoreUpgradesButton").style.display = "none";
+document.getElementById("ToggleSnakeBtn").style.display = "none";
+document.getElementById("upgradeSnakeBtn").style.display = "none";
+document.getElementById("rain").style.display = "none";
+document.getElementById("snakeBtn").style.display = "none";
+document.getElementById("cloudsBtn").style.display = "none";
+document.getElementById("sharkSpawnerBtn").style.display = "none";
+document.getElementById("lightningBtn").style.display = "none";
+document.getElementById("lightningUpgradeBtn").style.display = "none";
+document.getElementById("fishSpawnerBtn").style.display = "none";
+
+const input = document.getElementById("num");
+const button = document.getElementById("submit");
+const output = document.getElementById("output");
+button.addEventListener("click", () => {                                                                             //cheat codes!!!!
+  let value = Number(input.value);
+  if (value === 1111) {
+    score += 1000000000000000000000000;
+    updateScore();
+  }
+  input.value = "";
+});
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+//track mouse
+let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+window.addEventListener("mousemove", e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+});
+
+//cps
+  setInterval(() => {
+    cpsHistory.push(pointsThisInterval);
+    if (cpsHistory.length > 5) cpsHistory.shift(); // keep last 5 seconds
+    cps = pointsThisInterval * 2;
+    cps = formatNumber(cps);
+    document.getElementById("cps").innerText = "CPS: " + cps;
+    pointsThisInterval = 0;
+  }, 500);
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = document.body.scrollHeight; // instead of window.innerHeight
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+//#endregion
 
 
-setInterval(spawnImage, 1)
-
-  function spawnTriangle() {
-    const triangle = document.createElement("div");
-    triangle.classList.add("triangle");
-    const x = Math.random() * (window.innerWidth - 40);
-    const y = Math.random() * (window.innerHeight - 30);
-    triangle.style.left = x + "px";
-    triangle.style.top = y + "px";
-    gameArea.appendChild(triangle);
-    const dx = (Math.random() - 0.5) * 800;
-    const dy = (Math.random() - 0.5) * 800;
-    triangles.push({ element: triangle, x, y, dx, dy });
+class Popup {
+  constructor(x, y, value) {
+    this.x = x;
+    this.y = y;
+    this.value = value;
+    this.alpha = 1;
+    this.dy = -1.5; // moves up
+    this.fontSize = 20; // start font size
   }
 
-  function spawnText() {
-    const div = document.createElement("div");
-    div.classList.add("text");
-    div.textContent = 17**38;
-    div.style.left = Math.random() * (window.innerWidth - 20) + "px";
-    div.style.top = Math.random() * (window.innerHeight - 20) + "px";
-    gameArea.appendChild(div);
+  update() {
+    this.y += this.dy;
+    this.alpha -= 0.02; // fade out
+    this.fontSize += 0.3; // optional: grow effect
   }
-setInterval(spawnImage, 1)
-  function moveTriangles() {
-    for (let t of triangles) {
-      t.x += t.dx;
-      t.y += t.dy;
-      if (t.x <= 0 || t.x >= window.innerWidth - 40) t.dx *= -1;
-      if (t.y <= 0 || t.y >= window.innerHeight - 30) t.dy *= -1;
-      t.element.style.left = t.x + "px";
-      t.element.style.top = t.y + "px";
+
+  draw() {
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = "red";
+    ctx.font = `${this.fontSize}px Arial`;
+    ctx.fillText("+" + formatNumber(Math.floor(this.value)), this.x, this.y);
+    ctx.globalAlpha = 1;
+  }
+}
+// ----- BALL -----
+class Ball {
+  constructor(
+    x = canvas.width / 2 + (Math.random() - 0.5) * 300,
+    y = canvas.height / 2 + (Math.random() - 0.5) * 500,
+    dx = null, dy = null) {
+    this.x = x;
+    this.y = y;
+    this.electrified = false;
+    this.dx = dx !== null ? dx : (Math.random() * 2 - 1);
+    this.dy = dy !== null ? dy : (Math.random() * 2 - 1);
+    this.radius = 15;
+  }
+
+  update() {
+    this.x += this.dx * autoClickerLevel * 0.5;
+    this.y += this.dy * autoClickerLevel * 0.5;
+
+    if (this.x <= 0 || this.x >= canvas.width) {
+      this.dx *= -1;
+      let gained = income * multi;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
     }
-    requestAnimationFrame(moveTriangles);
+    if (this.y <= 0 || this.y >= canvas.height) {
+      this.dy *= -1;
+      let gained = income * multi;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
+    }
   }
 
-  setInterval(spawnTriangle, 1);
-  setInterval(spawnImage, 1)
-  setInterval(spawnText, 1);
-  setInterval(spawnTriangle, 1);
-  setInterval(spawnText, 1);
-  setInterval(spawnTriangle, 1);
-  setInterval(spawnImage, 1)
-  setInterval(spawnText, 1);
-  setInterval(spawnImage, 1)
-  setInterval(spawnTriangle, 1);
-  setInterval(spawnImage, 1)
-  setInterval(spawnText, 1);
-  setInterval(spawnTriangle, 1);
-  setInterval(spawnText, 1);
-  setInterval(spawnImage, 1)
-  setInterval(spawnTriangle, 1);
-  setInterval(spawnText, 1);
-  moveTriangles();
-  setInterval(spawnImage, 1)
-  moveTriangles();
-setInterval(spawnImage, 1)
-counter += 2;
-  
-    if (counter > 5) {
-      for (let i = -3495394; i < 100000; i++) {
-          const div = document.createElement("div");
-          div.textContent = "afhlwiadhukhkfjashdkjlfhsr3hjsdhjf";
-          div.style.fontSize = "10px";
-          div.style.display = "inline-block";
-          document.body.appendChild(div);
-            setInterval(spawnTriangle, 1);
-  setInterval(spawnText, 1);
-  setInterval(spawnImage, 1)
-  setInterval(spawnTriangle, 1);
-              for (let i = -3495394; i < 100000; i++) {
-          const div = document.createElement("div");
-          div.textContent = 34**91;
-          div.style.fontSize = "10px";
-          div.style.display = "inline-block";
-          document.body.appendChild(div);
-            setInterval(spawnTriangle, 1);
-  setInterval(spawnText, 1);
-  setInterval(spawnImage, 1)
-  setInterval(spawnTriangle, 1);
-              for (let i = -3495394; i < 100000; i++) {
-          const div = document.createElement("div");
-          div.textContent = 19**37;
-          div.style.fontSize = "10px";
-          div.style.display = "inline-block";
-          document.body.appendChild(div);
-          setInterval(spawnImage, 1)
-            setInterval(spawnTriangle, 1);
-  setInterval(spawnText, 1);
-  setInterval(spawnImage, 1)
-              
-          }
+  draw() {
+    ctx.beginPath();
+
+    if (this.electrified) {
+      ctx.save();
+      ctx.shadowColor = "red";
+      ctx.shadowBlur = 50; // steady glow
+      ctx.fillStyle = "#ff2222"; // neon red glow
+    } else {
+      ctx.fillStyle = "#ff988e"; // normal ball color
+    }
+
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (this.electrified) {
+      ctx.restore();
+
+      // Extra inner glow layer (steady)
+      ctx.save();
+      ctx.shadowColor = "white";
+      ctx.shadowBlur = 40;
+      ctx.fillStyle = "#ff2222";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.closePath();
+  }
+}
+// ----- SQUARE -----
+class Square {
+  constructor(
+    x = canvas.width / 2 + (Math.random() - 0.5) * 300,
+    y = canvas.height / 2 + (Math.random() - 0.5) * 500,
+    dx = null, dy = null) {
+    this.x = x;
+    this.y = y;
+    this.electrified = false;
+    this.dx = dx !== null ? dx : (Math.random() * 2 - 1);
+    this.dy = dy !== null ? dy : (Math.random() * 2 - 1);
+    this.size = 25;
+  }
+
+  update() {
+    this.x += this.dx * autoClickerLevel * 0.6;
+    this.y += this.dy * autoClickerLevel * 0.6;
+
+    if (this.x <= 0 || this.x + this.size >= canvas.width) {
+      this.dx *= -1;
+      let gained = income * multi;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
+    }
+    if (this.y <= 0 || this.y + this.size >= canvas.height) {
+      this.dy *= -1;
+      let gained = income * multi;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
+    }
+  }
+
+  draw() {
+    if (this.electrified) {
+      ctx.save();
+      ctx.shadowColor = "#0ff"; // simple cyan glow
+      ctx.shadowBlur = 15;       // small blur, less lag
+      ctx.fillStyle = "#66ffff"; // slightly light base
+      ctx.fillRect(this.x, this.y, this.size, this.size);
+      ctx.restore();
+
+      // core square
+      ctx.fillStyle = "#66ffff"; // dark cyan
+      ctx.fillRect(this.x, this.y, this.size, this.size);
+    } else {
+      ctx.fillStyle = "#3399cc"; // normal dark cyan
+      ctx.fillRect(this.x, this.y, this.size, this.size);
+    }
+  }
+}
+// ----- TRIANGLE -----
+class Triangle {
+  constructor(
+    x = canvas.width / 2 + (Math.random() - 0.5) * 300,
+    y = canvas.height / 2 + (Math.random() - 0.5) * 500,
+    dx = null, dy = null) {
+    this.electrified = false;
+    this.x = x;
+    this.y = y;
+    this.dx = dx !== null ? dx : (Math.random() * 2 - 1);
+    this.dy = dy !== null ? dy : (Math.random() * 2 - 1);
+    this.size = 30; // side length
+  }
+
+  update() {
+    this.x += this.dx * autoClickerLevel * 0.8;
+    this.y += this.dy * autoClickerLevel * 0.8;
+
+    if (this.x <= 0 || this.x + this.size >= canvas.width) {
+      this.dx *= -1;
+      let gained = income * multi;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
+    }
+    if (this.y <= 0 || this.y + this.size >= canvas.height) {
+      this.dy *= -1;
+      let gained = income * multi;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
+    }
+  }
+
+  draw() {
+    ctx.beginPath(); // always start a new path
+
+    if (this.electrified) {
+      ctx.save();
+      ctx.shadowColor = "#ffff99";
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = "#ffff99";
+    } else {
+      ctx.fillStyle = "#ffa500"; // normal triangle color
+    }
+
+    // draw triangle
+    ctx.moveTo(this.x, this.y);                        // top point
+    ctx.lineTo(this.x - this.size / 2, this.y + this.size);
+    ctx.lineTo(this.x + this.size / 2, this.y + this.size);
+    ctx.closePath();
+    ctx.fill();
+    if (this.electrified) {
+      ctx.restore();
+    }
+  }
+}
+//. ------ RAINDROP THING -------
+class Raindrop {
+  constructor() {
+    this.x = Math.random() * canvas.width;
+    this.y = 0; // start at top
+    this.width = 5;
+    this.height = 10;
+    this.speed = Math.random() * 3 + 2; // 2-5 px per frame
+  }
+
+  update() {
+    this.y += this.speed;
+
+    // If raindrop hits the bottom
+    if (this.y + this.height >= canvas.height) {
+      const gained = 5 * multi * income;  // 1 point per drop, scaled by multiplier
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
+      return false; // signal to remove this raindrop
+    }
+    return true; // keep raindrop in array
+  }
+
+  draw() {
+    ctx.fillStyle = "blue";
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+}
+
+class Snake {
+  constructor() {
+    this.segments = [];
+    this.segmentSize = 14;
+    this.length = 20;
+    this.x = canvas.width / 2;
+    this.y = canvas.height / 2;
+    this.speed = 3;
+
+    // initialize body
+    for (let i = 0; i < this.length; i++) {
+      this.segments.push({ x: this.x - i * this.segmentSize, y: this.y });
+    }
+  }
+
+  update() {
+    // move toward mouse
+    let dx = mouse.x - this.x;
+    let dy = mouse.y - this.y;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 1) {
+      this.x += (dx / dist) * this.speed;
+      this.y += (dy / dist) * this.speed;
+    }
+
+    // body follows
+    this.segments.unshift({ x: this.x, y: this.y });
+    while (this.segments.length > this.length) {
+      this.segments.pop();
+    }
+
+    // check collisions with shapes
+    this.checkCollisions();
+  }
+
+  checkCollisions() {
+    const eatRange = this.segmentSize;
+
+    function overlaps(a, b, size) {
+      return (
+        a.x < b.x + size &&
+        a.x + size > b.x &&
+        a.y < b.y + size &&
+        a.y + size > b.y
+      );
+    }
+
+    // eat balls
+    balls = balls.filter(b => {
+      if (overlaps({x:this.x,y:this.y}, {x:b.x-b.radius,y:b.y-b.radius}, b.radius*2)) {
+        if (b.electrified) {
+          this.discountPrices(0.99);
+          return false;
+        }
+        this.discountPrices(0.995);
+        return false; // remove ball
+      }
+      return true;
+    });
+
+    // eat squares
+    squares = squares.filter(s => {
+      if (overlaps({x:this.x,y:this.y}, {x:s.x,y:s.y}, s.size)) {
+        if (s.electrified) {
+          this.discountPrices(0.99);
+          return false;
+        }
+        this.discountPrices(0.995);
+        return false;
+      }
+      return true;
+    });
+
+    // eat triangles (approx bounding box)
+    triangles = triangles.filter(t => {
+      if (overlaps({x:this.x,y:this.y}, {x:t.x-t.size/2,y:t.y}, t.size)) {
+        if (t.electrified) {
+          this.discountPrices(0.99);
+          return false;
+        }
+        this.discountPrices(0.995);
+        return false;
+      }
+      return true;
+    });
+  }
+
+  discountPrices(discount) {
+    upgradeCost = Math.round(Math.max(1, upgradeCost * discount));
+    autoClickerCost = Math.round(Math.max(1, autoClickerCost * discount));
+    ballSpawnerCost = Math.round(Math.max(1, ballSpawnerCost * discount));
+    squareSpawnerCost = Math.round(Math.max(1, squareSpawnerCost * discount));
+    triangleSpawnerCost = Math.round(Math.max(1, triangleSpawnerCost * discount));
+    incomeCost = Math.round(Math.max(1, incomeCost * discount));
+    rebirthCost = Math.round(Math.max(1, rebirthCost * discount));
+    updateShop();
+
+    const popup = document.createElement("div");
+    popup.textContent = ((discount - 1) * 100).toFixed(1) + "%";
+    popup.className = "discount-popup";
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 1000);
+  }
+
+  draw(ctx) {
+    ctx.save(); // save canvas state
+
+    // Blue gradient body
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, "#1E90FF"); // light blue
+    gradient.addColorStop(1, "#104E8B"); // deep blue
+    ctx.fillStyle = gradient;
+
+    for (let i = 0; i < this.segments.length; i++) {
+      const { x, y } = this.segments[i];  // ✅ fixed
+
+      // Wave motion for serpentine look
+      const wave = Math.sin((Date.now() / 200) + i * 0.5) * 5;
+
+      if (i === 0) {
+        // Head
+        ctx.fillStyle = "#104E8B"; // darker head
+        ctx.beginPath();
+        ctx.arc(x + wave, y, this.segmentSize * 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(x - 4, y - 4, 2, 0, Math.PI * 2);
+        ctx.arc(x + 4, y - 4, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = gradient; // reset for body
+      } else {
+        // Body ovals
+        ctx.beginPath();
+        ctx.ellipse(
+          x + wave,
+          y,
+          this.segmentSize,
+          this.segmentSize * 0.7,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+    }
+
+    ctx.restore(); // restore canvas state
+  }
+}
+// ----- SHARK -----
+class Shark {
+  constructor(
+    x = canvas.width / 2 + (Math.random() * 100),
+    y = canvas.height / 2 + (Math.random() * 100),
+    dx = null, dy = null) {
+    this.x = x;
+    this.y = y;
+    this.electrified = false;
+    this.dx = dx !== null ? dx : (Math.random() * 2 - 1);
+    this.dy = dy !== null ? dy : (Math.random() * 2 - 1);
+    this.radius = 40; // overall shark size
+  }
+
+  update() {  
+    this.x += this.dx * autoClickerLevel * 1.5;
+    this.y += this.dy * autoClickerLevel * 1.5; 
+
+    // bounce and gain points
+    if (this.x <= 0 || this.x + this.radius >= canvas.width) {
+      this.dx *= -1;
+      let gained = Math.round(sharkValue) * multi * income;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      sharkValue += 0.1;
+      updateScore();
+    }
+
+    if (this.y <= 0 || this.y + this.radius >= canvas.height) {
+      this.dy *= -1;
+      let gained = Math.round(sharkValue) * multi * income;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      sharkValue += 0.1;
+      updateScore();
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    if (this.electrified) {
+      ctx.shadowColor = "lightblue";
+      ctx.shadowBlur = 100; // steady glow
+      ctx.fillStyle = "#33ccff"; // brighter neon blue when shocked
+    } else {
+      ctx.fillStyle = "blue"; // normal shark color
+    }
+
+    // Shark body (oval)
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.radius * 1.2, this.radius * 0.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tail
+    ctx.beginPath();
+    ctx.moveTo(-this.radius * 1.2, 0);
+    ctx.lineTo(-this.radius * 1.8, this.radius * 0.5);
+    ctx.lineTo(-this.radius * 1.8, -this.radius * 0.5);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.arc(this.radius * 0.6, -this.radius * 0.2, this.radius * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    ctx.arc(this.radius * 0.6, -this.radius * 0.2, this.radius * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+class Cloud {
+  constructor(x, y, d) {
+    this.x = x;
+    this.y = y;
+    this.d = d;
+    this.color = "white";
+    this.speed = 0.3 + Math.random() * Math.random() * 6; // gentle random speed
+  }
+
+  update() {
+    this.x += this.speed * this.d;
+    // when cloud goes off screen, loop it back to left
+    if (this.x - 135 > canvas.width) {
+      this.x = -135;
+    }
+    if (this.x + 135 < 0) {
+      this.x = canvas.width + 135;
+    }
+  }
+
+  draw() {
+    ctx.fillStyle = this.color;
+    ctx.save();
+    ctx.scale(1.8, 1);
+
+    ctx.beginPath();
+    ctx.arc(this.x / 1.8, this.y - 10, 60, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc((this.x - 70) / 1.8, this.y + 10, 45, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc((this.x + 70) / 1.8, this.y + 10, 45, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+class Lightning {
+  constructor(cloudX, cloudY) {
+    this.x = cloudX; 
+    this.y = cloudY;
+    this.segments = [];
+    this.alpha = 1; 
+    this.createBolt();
+  }
+
+  createBolt() {
+    let x = this.x;
+    let y = this.y + 50; // start just under the cloud
+    this.segments.push({ x, y });
+
+    // jagged line downward
+    while (y < canvas.height - 50) {
+      x += (Math.random() - 0.5) * 40; // zig-zag horizontally
+      y += Math.random() * 40 + 20;   // move down
+      this.segments.push({ x, y });
+    }
+  }
+
+  update() {
+    this.alpha -= 0.05; // fade out quickly
+
+    // check lightning touching shapes
+    for (let shape of [...balls, ...squares, ...triangles, ...sharks, ...fish]) {
+      for (let seg of this.segments) {
+        let dx = seg.x - shape.x;
+        let dy = seg.y - shape.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist < 25 && Math.random() <= 0.003) { // 0.3% chance
+          shape.electrified = true;
+          setTimeout(() => {
+            console.log("Waited 0.3 seconds");}, 300);
         }
       }
     }
-  stress();
+
+    return this.alpha > 0;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.strokeStyle = "yellow";
+    ctx.shadowColor = "yellow";
+    ctx.shadowBlur = 16;
+    ctx.lineWidth = 14;
+    ctx.beginPath();
+    ctx.moveTo(this.segments[0].x, this.segments[0].y);
+    for (let p of this.segments) {
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
 }
-stress();
+
+class Fish {
+  constructor(x, y) {
+    x = canvas.width / 2 + (Math.random() - 0.5) * 300,
+    y = canvas.height / 2 + (Math.random() - 0.5) * 500,
+    this.x = x,
+    this.y = y,
+    this.electrified = false;
+    this.radius = 16; // size of the fish
+    this.dx = (Math.random() * 2 - 1),
+    this.dy = (Math.random() * 2 - 1),
+    this.value = fishValue;
+  }
+
+  update() {
+    this.x += this.dx * autoClickerLevel;
+    this.y += this.dy * autoClickerLevel;
+
+    if (this.x <= 0 || this.x + this.radius >= canvas.width) {
+      this.dx *= -1;
+      let gained = this.value * income * multi;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
+    }
+    if (this.y <= 0 || this.y + this.radius >= canvas.height) {
+      this.dy *= -1;
+      let gained = this.value * income * multi;
+      if (this.electrified) {
+        gained *= shockedMultiplier;
+      }
+      score += gained;
+      pointsThisInterval += gained;
+      popups.push(new Popup(this.x, this.y, gained));
+      updateScore();
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    if (this.electrified == true) {
+      ctx.shadowColor = "yellow";   // glow color
+      ctx.shadowBlur = 35;      
+      ctx.fillStyle = "yellow";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.radius * 1.2, this.radius * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Fish body (oval)
+    if (this.electrified == false) {
+      ctx.fillStyle = "orange";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.radius * 1.2, this.radius * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Tail
+    ctx.beginPath();
+    ctx.moveTo(-this.radius * 1.2, 0);
+    ctx.lineTo(-this.radius * 1.8, this.radius * 0.5);
+    ctx.lineTo(-this.radius * 1.8, -this.radius * 0.5);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.arc(this.radius * 0.6, -this.radius * 0.2, this.radius * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    ctx.arc(this.radius * 0.6, -this.radius * 0.2, this.radius * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  isClicked(mx, my) {
+    const dx = mx - this.x;
+    const dy = my - this.y;
+    return dx * dx + dy * dy <= this.radius * this.radius;
+  }
+}
+
+
+function checkSaveVersion() {
+  const currentVersion = localStorage.getItem("save_version");
+
+  if (currentVersion !== SAVE_VERSION) {
+    localStorage.clear();
+    localStorage.setItem("save_version", SAVE_VERSION);
+    showUpdateMessage(SAVE_VERSION);
+  }
+}
+
+function initFPSCounter() {
+  fpsCounter = document.createElement("div");
+  fpsCounter.id = "fpsCounter"; // define in CSS
+  fpsCounter.textContent = "FPS: 0";
+  document.body.appendChild(fpsCounter);
+}
+
+function updateFPS() {
+  const now = performance.now();
+  frames++;
+
+  if (now - lastTime >= 1000) {
+    fps = frames;
+    frames = 0;
+    lastTime = now;
+
+    if (fpsCounter) {
+      fpsCounter.textContent = `FPS: ${fps}`;
+
+      // optional color code
+      fpsCounter.className = "";
+    if (fps >= 50) fpsCounter.classList.add("good");
+    else if (fps >= 30) fpsCounter.classList.add("okay");
+    else fpsCounter.classList.add("bad");
+    }
+  }
+}
+
+function showUpdateMessage(version) {
+  const msg = document.createElement("div");
+  msg.className = "updateMessage"; // define this in CSS
+  msg.textContent = `Game updated to ${version}! Progress has been reset.`;
+  document.body.appendChild(msg);
+
+  setTimeout(() => {
+    msg.style.transition = "opacity 1s";
+    msg.style.opacity = "0";
+    setTimeout(() => msg.remove(), 1000);
+  }, 4000);
+}
+
+                                        // Click + upgrades            //ENDD OF  CLASSES!!!!!
+function addPoint() {
+  let points = pointsPerClick * multi;
+  score += points;
+  pointsThisInterval += points;
+  if (Math.random() < 0.4) {
+    const plusOnePopup = new Popup(mouse.x, mouse.y - 10, points);
+    popups.push(plusOnePopup);
+  }
+  updateScore();
+}
+
+function buyUpgrade() {                   //UPGRADE CLICK
+  if (score >= upgradeCost) {
+    score -= upgradeCost;
+    pointsPerClick++;
+    if (upgradeCost > 100000) {//100k
+      upgradeCost = Math.floor(upgradeCost * 1.25);
+    }
+    else {
+      upgradeCost = Math.floor(upgradeCost * 1.65);
+    }
+    updateShop();
+    updateScore();
+  }
+}
+
+function buyAutoClicker() {             //upgrade speed!
+  if (score >= autoClickerCost) {
+    score -= autoClickerCost;
+    autoClickerLevel++;
+    balls.forEach(b => { b.dx *= 1.2; b.dy *= 1.2; });
+    squares.forEach(s => { s.dx *= 1.2; s.dy *= 1.2; });
+    triangles.forEach(s => { s.dx *= 1.2; s.dy *= 1.2; });
+    if (upgradeCost > 10000000) {//10 mil
+      autoClickerCost = Math.floor(autoClickerCost * 2.57);
+    }
+    else if (upgradeCost > 10000 && upgradeCost< 10000000){
+      autoClickerCost = Math.floor(autoClickerCost * 3.23);
+    }
+    else {
+      autoClickerCost = Math.floor(autoClickerCost * 5.13);
+    }
+    updateShop();
+    updateScore();
+  }
+}
+
+function buyBallSpawner() {                 //more balls!
+  if (score >= ballSpawnerCost) {
+    score -= ballSpawnerCost;
+    ballSpawnerCount++;
+    if (ballSpawnerCost > 100000) {//100k
+      ballSpawnerCost = Math.floor(ballSpawnerCost * 1.1);
+    }
+    else {
+      ballSpawnerCost = Math.floor(ballSpawnerCost * 1.2);
+    }
+    balls.push(new Ball());
+    updateShop();
+    updateScore();
+  }
+}
+
+function buySquareSpawner() {               //MORE SQUARES
+  if (score >= squareSpawnerCost) {
+    score -= squareSpawnerCost;
+    squareSpawnerCount++;
+    if (squareSpawnerCost > 100000) {//100k
+      squareSpawnerCost = Math.floor(squareSpawnerCost * 1.2);
+    }
+    else {
+      squareSpawnerCost = Math.floor(squareSpawnerCost * 1.3);
+    }
+    squares.push(new Square());
+    updateShop();
+    updateScore();
+  }
+}
+
+function buyTriangleSpawner() {           //MORE TRIANGLES
+  if (score >= triangleSpawnerCost) {
+    score -= triangleSpawnerCost;
+    triangleSpawnerCount++;
+    if (triangleSpawnerCost > 100000) {//100k
+      triangleSpawnerCost = Math.floor(triangleSpawnerCost * 1.35);
+    }
+    else {
+      triangleSpawnerCost = Math.floor(triangleSpawnerCost * 1.55);
+    }
+    triangles.push(new Triangle());
+    updateShop();
+    updateScore();
+  }
+}
+
+function buyIncome() {           //mORE VALUE LETS GO BABY!
+  if (score >= incomeCost) {
+    score -= incomeCost;
+    if (incomeCost > 1000000) { //1 mil
+      incomeCost = Math.floor(incomeCost * 1.25);
+    }
+    else {
+      incomeCost = Math.floor(incomeCost * 1.45);
+    }
+    income++;
+    squareValue += 2;
+    triangleValue += 5;
+    fishValue += 100;
+    sharkValue += 200;
+    updateShop();
+    updateScore();
+  }
+}
+
+//                          UPDATES AND ANIMATION
+function animate() {                  //ANIMATION!
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  balls.forEach(ball => { 
+    ball.update(); 
+    ball.draw(); 
+  });
+
+  squares.forEach(square => { 
+    square.update(); 
+    square.draw(); 
+  });
+
+  triangles.forEach(triangle => {
+    triangle.update();
+    triangle.draw();
+  });
+
+  fish.forEach(fish => {
+    fish.update();
+    fish.draw(ctx);
+  })
+
+    sharks.forEach(s => {
+  s.update();
+  s.draw();
+  });
+  
+  raindrops = raindrops.filter(drop => {
+    const alive = drop.update();
+    drop.draw();
+    return alive;
+  });
+
+  if (snake) {
+  snake.update();
+  snake.draw(ctx);
+  }
+
+  clouds.forEach(cloud => {
+    cloud.update();
+    cloud.draw();
+  });
+  
+
+  if (boughtLightning) { //lightningInterval
+    if (Math.random() < lightningInterval && clouds.length > 0) {   //original: < 0.005
+      let c = clouds[Math.floor(Math.random() * clouds.length)];
+      let bolt = new Lightning(c.x, c.y);
+      lightnings.push(bolt);
+      // ⚡ bonus points happen right here, first frame only
+      score += 500 * multi * income;
+      pointsThisInterval += 500 * multi * income;
+      updateScore();
+    }
+
+    lightnings = lightnings.filter(l => {
+      const alive = l.update();
+      l.draw();
+      return alive;
+    });
+  }
+
+  popups.forEach((p, index) => {
+  p.update();
+  p.draw();
+  if (p.alpha <= 0) popups.splice(index, 1);
+  });
+  updateFPS();
+  requestAnimationFrame(animate);
+}
+
+function updateShop() {           //UPDATE THE SHOP
+  document.getElementById("upgradeBtn").innerText = "Upgrade Click (+" + pointsPerClick + ") — Cost: " + formatNumber(upgradeCost);
+  document.getElementById("autoClickerBtn").innerText = "Upgrade Speed (Lv " + autoClickerLevel + ") — Cost: " + formatNumber(autoClickerCost);
+  document.getElementById("ballSpawnerBtn").innerText = "Add Ball (Now " + ballSpawnerCount + ") — Cost: " + formatNumber(ballSpawnerCost);
+  document.getElementById("squareSpawnerBtn").innerText = "Add Square (Now " + squareSpawnerCount + ") — Cost: " + formatNumber(squareSpawnerCost);
+  document.getElementById("incomeBtn").innerText = "Increase Value (Now " + income + ") — Cost: " + formatNumber(incomeCost);
+  document.getElementById("triangleSpawnerBtn").innerText = "Add Triangle (Now " + triangleSpawnerCount + ") — Cost: " + formatNumber(triangleSpawnerCost);
+  document.getElementById("sharkSpawnerBtn").innerText = "Add Shark (Now " + sharkSpawnerCount + ") — Cost: " + formatNumber(sharkSpawnerCost);
+  document.getElementById("rebirth").innerText = "REBIRTH (Multi:  " + multi + ") — Cost: " + formatNumber(rebirthCost);
+  document.getElementById("fishSpawnerBtn").innerText = "Add Fish (Now " + fishCount + ") — Cost: " + formatNumber(fishSpawnerCost);
+} 
+
+function updateScore() {
+  // Check for insane numbers and restart
+  if (score > 1e200) {
+    restartGame();
+  }
+
+  // Unlock more upgrades if score is high enough
+  if (score >= 1000000 || unlockedMoreUpgrades) {
+    unlockedMoreUpgrades = true;
+    document.getElementById("MoreUpgradesButton").style.display = "block";
+  }
+
+  // Update UI with commas
+  document.getElementById("score").innerText = "Score: " + formatNumber(score);
+  document.getElementById("multiplier").innerText = "×" + multi;
+
+  // Save automatically
+  saveGame();
+}
+
+// ----------------- Save / Load -----------------
+function saveGame() {
+  const saveData = {
+    score, pointsPerClick, upgradeCost,
+    autoClickerLevel, autoClickerCost,
+    ballSpawnerCount, ballSpawnerCost,
+    squareSpawnerCount, squareSpawnerCost,
+    triangleSpawnerCount, triangleSpawnerCost,
+    income, incomeCost,
+    squareValue, triangleValue,
+    balls: balls.map(b => ({x: b.x, y: b.y, dx: b.dx, dy: b.dy, electrified: !!b.electrified || false})),
+    squares: squares.map(s => ({x: s.x, y: s.y, dx: s.dx, dy: s.dy, electrified: !!s.electrified || false})),
+    triangles: triangles.map(t => ({x: t.x, y: t.y, dx: t.dx, dy: t.dy, electrified: !!t.electrified || false})),
+    sharks: sharks.map(sh => ({x: sh.x, y: sh.y, dx: sh.dx, dy: sh.dy, electrified: !!sh.electrified || false})),
+    fish: fish.map(f => ({x: f.x, y: f.y, dx: f.dx, dy: f.dy, electrified: !!f.electrified || false})),
+    multi, rebirthCost, growingCostMulti,
+    unlockedMoreUpgrades,
+    rainSpeed, boughtRain,
+    boughtSnake, snake,
+    pickedPath, pickedWater,
+    sharkSpawnerCost, sharkSpawnerCount, sharkValue,
+    boughtClouds, boughtLightning, lightningInterval,
+    shockedMultiplier, upgradedLightning, upgradedSnake, showSnake
+  };
+  localStorage.setItem("clickerSave", JSON.stringify(saveData));
+}
+
+function loadGame() {
+  const saved = JSON.parse(localStorage.getItem("clickerSave"));
+  if (saved) {
+    score = saved.score || 0;
+    pointsPerClick = saved.pointsPerClick || 1;
+    upgradeCost = saved.upgradeCost || 10;
+    autoClickerLevel = saved.autoClickerLevel || 1;
+    autoClickerCost = saved.autoClickerCost || 50;
+
+    ballSpawnerCount = saved.ballSpawnerCount || 0;
+    ballSpawnerCost = saved.ballSpawnerCost || 100;
+
+    squareSpawnerCount = saved.squareSpawnerCount || 0;
+    squareSpawnerCost = saved.squareSpawnerCost || 200;
+
+    triangleSpawnerCount = saved.triangleSpawnerCount || 0;
+    triangleSpawnerCost = saved.triangleSpawnerCost || 500;
+
+    income = saved.income || 1;
+    squareValue = saved.squareValue || 2;
+    triangleValue = saved.triangleValue || 5;
+    incomeCost = saved.incomeCost || 1000;
+
+    multi = saved.multi || 1;
+    rebirthCost = saved.rebirthCost || 100000;
+    growingCostMulti = saved.growingCostMulti || 1.5;
+
+    unlockedMoreUpgrades = saved.unlockedMoreUpgrades || false;
+    raindrops = saved.raindrops || [];
+    rainSpeed = saved.rainSpeed || 200;
+    boughtRain = saved.boughtRain || false;
+    boughtClouds = saved.boughtClouds || false;
+    boughtLightning = saved.boughtLightning || false;
+    lightningInterval = saved.lightningInterval || 0.01;
+    boughtSnake = saved.boughtSnake || false;
+    upgradedLightning  = saved.upgradedLightning || false;
+    upgradedSnake = saved.upgradedSnake || false;
+    showSnake = saved.showSnake || false;
+
+    shockedMultiplier = saved.shockedMultiplier || 50;
+
+    pickedPath = saved.pickedPath || false;
+    pickedWater = saved.pickedWater || false;
+
+    console.log(boughtSnake);
+    console.log(showSnake);
+
+    //#region check bought products
+    if (boughtRain == true) {
+      document.getElementById("rain").style.display = "none";
+      startRain();
+    }
+    if (boughtSnake) {
+      snake = new Snake()
+    }
+    if (upgradedSnake && !showSnake) {
+      snake = null;
+    }
+    if (boughtClouds == true) {
+        clouds.push(new Cloud(100, 33, -1));
+        clouds.push(new Cloud(300, 40, 1));
+        clouds.push(new Cloud(600, 35, 1));
+        clouds.push(new Cloud(700, 30, -1));
+        clouds.push(new Cloud(800, 35, 1));
+        clouds.push(new Cloud(1000, 30, -1));
+        clouds.push(new Cloud(1300, 32, -1));
+        clouds.push(new Cloud(1500, 41, 1));
+        clouds.push(new Cloud(1700, 38, -1));
+        clouds.push(new Cloud(2000, 40, -1));
+      document.getElementById("cloudsBtn").style.display = "none";
+    }
+    if (boughtLightning == true) {
+      if (lightnings.length === 0) {
+          // Only spawn new lightning if none were restored
+          lightnings.push(new Lightning(/* some default values if needed */));
+        }
+
+      for (let cloud of clouds) {
+        let gradient = ctx.createLinearGradient(cloud.x, cloud.y, cloud.x, cloud.y + 50);
+        gradient.addColorStop(0, "#aaa"); // lighter top
+        gradient.addColorStop(1, "#444"); // darker bottom
+        cloud.color = gradient; // store gradient properly
+      }
+      document.getElementById("lightningBtn").style.display = "none";
+    }
+    if (unlockedMoreUpgrades == true) {
+      document.getElementById("MoreUpgradesButton").style.display = "block";
+      if (pickedPath == true) {
+        if (pickedWater == false) {
+          document.getElementById("pathLabel").style.display = "block";  //PATHS: label
+          document.getElementById("waterPathBtn").style.display = "block";
+        }
+      }
+    }
+    //#endregion
+
+  balls = (saved.balls || []).map(b => {
+    let ball = new Ball(b.x, b.y, b.dx, b.dy);
+    ball.electrified = b.electrified; // keep mutation status
+    return ball;
+  });
+
+  squares = (saved.squares || []).map(s => {
+    let square = new Square(s.x, s.y, s.dx, s.dy);
+    square.electrified = s.electrified;
+    return square;
+  });
+
+  triangles = (saved.triangles || []).map(t => {
+    let tri = new Triangle(t.x, t.y, t.dx, t.dy);
+    tri.electrified = t.electrified;
+    return tri;
+  });
+
+  sharks = (saved.sharks || []).map(sh => {
+    let shark = new Shark(sh.x, sh.y, sh.dx, sh.dy);
+    shark.electrified = sh.electrified;
+    return shark;
+  });
+
+  fish = (saved.fish || []).map(f => {
+    let fi = new Fish(f.x, f.y, f.dx, f.dy);
+    fi.electrified = f.electrified;
+    return fi;
+  });
+  
+}
+  else {
+    // If no save, initialize default objects
+    balls = [];
+    squares = [];
+    triangles = [];
+    raindrops = [];
+    clouds = [];
+    lightnings = [];
+    sharks = [];
+    fish = [];
+  }
+  restorePaths();
+  restoreBackgrounds();
+  startRain();
+  updateShop();
+  updateScore();
+}
+
+function restartGame() {
+  if ('scrollRestoration' in history) {   // to go to top when start
+  history.scrollRestoration = 'manual';
+  }
+
+  window.onload = function() {
+    window.scrollTo(0, 0);
+  };
+
+  pickedPath = false;
+  pickedWater = false;
+
+  multi = 1;
+  cur_score = 0;
+  score = 0;
+  pointsPerClick = 1;
+  upgradeCost = 10;
+  autoClickerLevel = 1;
+  autoClickerCost = 50;
+
+  ballSpawnerCount = 0;
+  ballSpawnerCost = 100;
+
+  squareSpawnerCount = 0;
+  squareSpawnerCost = 200;
+
+  triangleSpawnerCount = 0;
+  triangleSpawnerCost = 500;
+
+  income = 1;
+  squareValue = 2;
+  triangleValue = 5;
+  incomeCost  = 1000;
+
+  balls = [];
+  squares = [];
+  triangles = [];
+  raindrops = [];
+  clouds = [];
+  lightning = [];
+  fish = [];
+  sharks = [];
+
+  growingCostMulti = 1.5;
+  rebirthCost = 100000;
+  unlockedMoreUpgrades = false;
+  rainSpeed = 200;
+  boughtRain = false;
+  boughtClouds = false;
+  boughtLightning = false;
+  lightningInterval = 0.01;
+  upgradedLightning = false;
+  upgradedSnake = false;
+  showSnake = false;
+
+  shockedMultiplier = 50;
+  
+  sharkSpawnerCount = 0;
+  sharkSpawnerCost = 15000000;
+  sharkValue = 1000;
+  fishSpawnerCost = 10000000;
+  fishCount = 0;
+  fishValue = 500;
+
+  stopRain();
+  removeSnake(); //sets all snake variables to false and deletes snake
+
+  //HIDE THE UPGRADES
+  document.getElementById("ToggleSnakeBtn").style.display = "none";
+  document.getElementById("upgradeSnakeBtn").style.display = "none";
+  document.getElementById("rain").style.display = "none";
+  document.getElementById("MoreUpgradesButton").style.display = "none";
+  document.getElementById("pathLabel").style.display = "none";
+  document.getElementById("snakeBtn").style.display = "none";
+  document.getElementById("sharkSpawnerBtn").style.display = "none";
+  document.getElementById("waterPathBtn").style.display = "none";
+  document.getElementById("cloudsBtn").style.display = "none";
+  document.getElementById("lightningBtn").style.display = "none";
+  document.getElementById("lightningUpgradeBtn").style.display = "none";
+  document.getElementById("fishSpawnerBtn").style.display = "none";
+  //fix background
+  document.body.style.background = "white";
+
+  updateShop();
+  updateScore();
+  saveGame();
+}
+
+//                                  CUSTOM STUFF!
+
+function restoreBackgrounds() {
+  if (pickedPath == false) {
+    document.body.style.background = "white";
+  }
+  else {
+    if (pickedWater == true) {
+      document.body.style.background = "linear-gradient(to right, #74ebd5, #acb6e5)";
+    }
+  }
+  saveGame();
+}
+
+function restorePaths() {
+  if (pickedPath == false) {
+    document.getElementById("pathLabel").style.display = "block";
+    document.getElementById("waterPathBtn").style.display = "block";
+    return;
+    } 
+  if (pickedPath == true) {
+    if (pickedWater == true) {
+      document.getElementById("waterPathBtn").style.display = "none";
+      if (boughtRain == false) {
+      document.getElementById("rain").style.display = "block";
+      }
+      if (boughtSnake == false) {
+        document.getElementById("snakeBtn").style.display = "block";
+      }
+      if (boughtClouds == false && boughtRain == true) {
+        document.getElementById("cloudsBtn").style.display = "block";
+      }
+      if (boughtLightning == false && boughtClouds == true) {
+        document.getElementById("lightningBtn").style.display = "block";
+      }
+      if (upgradedLightning == false && boughtLightning == true) {
+        document.getElementById("lightningUpgradeBtn").style.display = "block";
+      }
+      if (upgradedSnake == false && boughtSnake == true) {
+        document.getElementById("ToggleSnakeBtn").style.display = "none";
+        document.getElementById("upgradeSnakeBtn").style.display = "block";
+      }
+      if (upgradedSnake == true) {
+        document.getElementById("upgradeSnakeBtn").style.display = "none";
+        document.getElementById("ToggleSnakeBtn").style.display = "block";
+      }
+      document.getElementById("sharkSpawnerBtn").style.display = "block";
+      document.getElementById("fishSpawnerBtn").style.display = "block";
+    }
+  }
+}
+
+function wait(ms) { 
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function formatNumber(num) {
+  if (num < 1e9) {
+    // Below a billion → commas only
+    return Math.floor(num).toLocaleString();
+  }
+
+  // Units starting at Billion
+  const units = ["B","T","Qa","Qi","Sx","Sp","Oc","No","Dc","Ud","Dd","Td","Qad","Qid","Sxd","Spd","Ocd","Nod","Vg","Uvg","Dvg","Tvg","Qavg","Qivg","Sxvg","Spvg","Ocvg","Novg","Tg","Utg","Dtg","GOOGOL"];
+
+  let unitIndex = 0;
+
+  // First step: make billions the baseline
+  num /= 1e9;
+
+  // Now scale by 1000 for larger units
+  while (num >= 1000 && unitIndex < units.length - 1) {
+    num /= 1000;
+    unitIndex++;
+  }
+
+  return parseFloat(num.toFixed(2)) + units[unitIndex];
+}
+
+async function rebirth() {  
+  if (score >= rebirthCost) { // check cost
+    multi += 1;
+    document.getElementById("rebirth").style.display = "none";
+    const multiEl = document.getElementById("multiplier");
+    multiEl.classList.add("animate-multi");
+    setTimeout(() => multiEl.classList.remove("animate-multi"), 1005);
+
+    let cur_score = score;
+    
+    while (score > 0) {
+      score -= getRandom(0.001 * cur_score, 0.01 * cur_score);
+      updateScore();
+      if (score < 0) 
+        score = 0;
+        updateScore();
+        await wait(1);
+    }
+    pickedPath = false;
+    pickedWater = false;
+
+    cur_score = 0;
+    score = 0;
+    pointsPerClick = 1;
+    upgradeCost = 10;
+    autoClickerLevel = 1;
+    autoClickerCost = 50;
+
+    ballSpawnerCount = 0;
+    ballSpawnerCost = 100;
+
+    squareSpawnerCount = 0;
+    squareSpawnerCost = 200;
+
+    triangleSpawnerCount = 0;
+    triangleSpawnerCost = 500;
+
+    income = 1;
+    squareValue = 2;
+    triangleValue = 5;
+    incomeCost  = 1000;
+
+    balls = [];
+    squares = [];
+    triangles = [];
+    raindrops = [];
+    clouds = [];
+    lightning = [];
+    fish = [];
+    sharks = [];
+
+    growingCostMulti = 1.5;
+    rebirthCost = 100000;
+    unlockedMoreUpgrades = false;
+    rainSpeed = 200;
+    boughtRain = false;
+    boughtClouds = false;
+    boughtLightning = false;
+    lightningInterval = 0.01;
+    upgradedLightning = false;
+    upgradedSnake = false;
+
+    shockedMultiplier = 50;
+    
+    sharkSpawnerCount = 0;
+    sharkSpawnerCost = 15000000;
+    sharkValue = 1000;
+    fishSpawnerCost = 10000000;
+    fishCount = 0;
+    fishValue = 500;
+
+    stopRain();
+    removeSnake(); //sets all snake variables to false and deletes snake
+
+    //HIDE THE UPGRADES
+    document.getElementById("rebirth").style.display = "block";
+    document.getElementById("rain").style.display = "none";
+    document.getElementById("ToggleSnakeBtn").style.display = "none";
+    document.getElementById("upgradeSnakeBtn").style.display = "none";
+    document.getElementById("MoreUpgradesButton").style.display = "none";
+    document.getElementById("pathLabel").style.display = "none";
+    document.getElementById("snakeBtn").style.display = "none";
+    document.getElementById("sharkSpawnerBtn").style.display = "none";
+    document.getElementById("waterPathBtn").style.display = "none";
+    document.getElementById("cloudsBtn").style.display = "none";
+    document.getElementById("lightningBtn").style.display = "none";
+    document.getElementById("lightningUpgradeBtn").style.display = "none";
+    document.getElementById("fishSpawnerBtn").style.display = "none";
+    //fix background
+    document.body.style.background = "white";
+
+    updateShop();
+    updateScore();
+    saveGame();
+  }
+}
+
+function getRandom(min, max) {       //random number function!!!!
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function showButtons() {
+  unlockedMoreUpgrades = false;
+  if (pickedPath == true) {
+    document.getElementById("MoreUpgradesButton").style.display = "none";
+    document.getElementById("pathLabel").style.display = "none";
+  }
+  if (pickedPath == false) {
+    document.getElementById("pathLabel").style.display = "block";
+    document.getElementById("waterPathBtn").style.display = "block";
+  }
+}
+
+function waterPath() {
+  document.body.style.background = "linear-gradient(to right, #74ebd5, #acb6e5)";
+  document.getElementById("pathLabel").style.display = "none"; //hide the path label
+  waterPathBtn.classList.add("fade");
+  waterPathBtn.style.pointerEvents = "none";
+  waterPathBtn.addEventListener("animationend", () => {
+  waterPathBtn.style.display = "none";
+  waterPathBtn.classList.remove("fade");
+  }, { once: true });
+  pickedPath = true;
+  pickedWater = true;
+
+  if (boughtRain == false) {
+    document.getElementById("rain").style.display = "block";
+  }
+  if (boughtSnake == false) {
+    document.getElementById("snakeBtn").style.display = "block";
+  }
+  if (boughtClouds == false && boughtRain == true) {
+    document.getElementById("cloudsBtn").style.display = "block";
+  }
+  if (boughtLightning == false && boughtClouds == true) {
+    document.getElementById("lightningBtn").style.display = "block";
+  }
+  document.getElementById("fishSpawnerBtn").style.display = "block";
+  document.getElementById("sharkSpawnerBtn").style.display = "block";
+  saveGame();
+}
+
+function createRaindrop() {
+  raindrops.push(new Raindrop());
+}
+
+function startRain() {
+  if (boughtRain && !rainInterval) { // only start if not already running
+    rainInterval = setInterval(createRaindrop, rainSpeed);
+  }
+}
+
+function stopRain() {
+  if (rainInterval) {
+    clearInterval(rainInterval); // stop the rain
+    rainInterval = null;         // reset so it can start again later
+  }
+}
+
+function buyRain() {
+  const rainCost = 1000000;
+  const rainBtn = document.getElementById("rain");
+  const snakeBtn = document.getElementById("snakeBtn");
+
+  if (score >= rainCost && !boughtRain) {
+    score -= rainCost;
+    boughtRain = true;
+    startRain(); 
+    updateScore();
+    document.getElementById("cloudsBtn").style.display = "block";
+
+    // fade rain button out
+    rainBtn.classList.add("fade");
+    rainBtn.style.pointerEvents = "none"; // prevent clicks
+    rainBtn.addEventListener("animationend", () => {
+      rainBtn.style.display = "none";
+      rainBtn.classList.remove("fade");
+    }, { once: true });
+    saveGame();
+  }
+}
+
+function buySnake() {
+  const snakeBtn = document.getElementById("snakeBtn");
+
+  if (score >= snakeSpawnerCost && !boughtSnake) {
+    score -= snakeSpawnerCost;
+    boughtSnake = true;
+    showSnake = true;
+    snake = new Snake();
+    updateScore();
+
+    document.getElementById("upgradeSnakeBtn").style.display = "block";
+    // fade out snake button when bought
+    snakeBtn.classList.add("fade");
+    snakeBtn.style.pointerEvents = "none";
+    snakeBtn.addEventListener("animationend", () => {
+      snakeBtn.style.display = "none";
+      snakeBtn.classList.remove("fade");
+    }, { once: true });
+    saveGame();
+  }
+}
+
+function removeSnake() {
+    snake = null;           // stop updating/drawing
+    boughtSnake = false;    // allow buying again
+    document.getElementById("snakeBtn").style.display = "none"; // hide button
+}
+ 
+function buyClouds() {
+  if (!boughtClouds && score >= 500000) { // example cost
+    score -= 500000;
+    boughtClouds = true;
+    document.getElementById("lightningBtn").style.display = "block";
+
+    clouds.push(new Cloud(100, -10, -1));
+    clouds.push(new Cloud(300, -12, 1));
+    clouds.push(new Cloud(600, -5, 1));
+    clouds.push(new Cloud(700, 0, -1));
+    clouds.push(new Cloud(800, -7, 1));
+    clouds.push(new Cloud(1000, -10, -1));
+    clouds.push(new Cloud(1300, -11, -1));
+    clouds.push(new Cloud(1500, -15, 1));
+    clouds.push(new Cloud(1700, -4, -1));
+    clouds.push(new Cloud(2000, -8, -1));
+    clouds.push(new Cloud(1900, -9, 1));
+    rainSpeed = 50;
+    cloudsBtn.classList.add("fade");
+    cloudsBtn.style.pointerEvents = "none";
+    cloudsBtn.addEventListener("animationend", () => {
+    cloudsBtn.style.display = "none";
+    cloudsBtn.classList.remove("fade");
+    }, { once: true });
+    saveGame();
+  }
+}
+
+function buyFishSpawner() {
+  if (score >= fishSpawnerCost) {//10 mil
+    score -= fishSpawnerCost;
+    fishCount += 1;
+    fish.push(new Fish(Math.random() * canvas.width, Math.random() * canvas.height));
+    if (fishSpawnerCost > 100000) {//100k
+      fishSpawnerCost = Math.floor(fishSpawnerCost * 1.08);
+    }
+    else {
+      fishSpawnerCost = Math.floor(fishSpawnerCost * 1.21);
+    }
+    updateScore();
+    updateShop();
+    saveGame();
+  }
+}
+
+function buySharkSpawner() {
+  if (score >= sharkSpawnerCost) {
+    score -= sharkSpawnerCost;
+    sharks.push(new Shark());
+    sharkSpawnerCost = Math.floor(sharkSpawnerCost * 1.05);
+    sharkSpawnerCount += 1;
+    updateShop();
+    updateScore();
+    saveGame();
+  }
+}
+
+function buyLightning() {
+  if (score >= 20000000) {
+    score -= 20000000;
+    boughtLightning = true;
+    document.getElementById("lightningUpgradeBtn").style.display = "block";
+
+    for (let cloud of clouds) {
+      let gradient = ctx.createLinearGradient(cloud.x, cloud.y, cloud.x, cloud.y + 50);
+      gradient.addColorStop(0, "#aaa"); // lighter top
+      gradient.addColorStop(1, "#444"); // darker bottom
+      cloud.color = gradient; // store gradient properly
+    }
+
+    lightningBtn.classList.add("fade");
+    lightningBtn.style.pointerEvents = "none";
+    lightningBtn.addEventListener("animationend", () => {
+    lightningBtn.style.display = "none";
+    lightningBtn.classList.remove("fade");
+    }, { once: true });
+    rainSpeed = 50;
+    updateScore()
+    saveGame();
+  }
+}
+
+function upgradeLightning() { 
+  if (score >= 60000000) {//60 mil
+    score -= 60000000;
+    lightningInterval = 0.05;
+    shockedMultiplier = 200;
+    upgradedLightning = true;
+
+    lightningUpgradeBtn.classList.add("fade");
+    lightningUpgradeBtn.style.pointerEvents = "none";
+    lightningUpgradeBtn.addEventListener("animationend", () => {
+    lightningUpgradeBtn.style.display = "none";
+    lightningUpgradeBtn.classList.remove("fade");
+    }, { once: true });
+    updateScore();
+    saveGame();
+  }
+}
+
+function toggleSnake() {
+  if (snake) {
+    snake = null;
+    showSnake = false;
+  }
+  else if (!snake) {
+    snake = new Snake();
+    showSnake = true;
+  }
+  saveGame();
+}
+
+function upgradeSnake() {
+  if (score >= 25000000) {//25 mil
+    score -= 25000000;
+    upgradedSnake = true;
+    document.getElementById("ToggleSnakeBtn").style.display = "block";
+    document.getElementById("upgradeSnakeBtn").style.display = "none";
+
+    saveGame();
+  }
+}
+
+checkSaveVersion();
+initFPSCounter();
+loadGame();
+animate(); 
 </script>
-</body>
-</html>
 </body>
 </html>
