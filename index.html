@@ -8,7 +8,6 @@
   Click me
 </button>
 
-
     </head>
     <script>
         
@@ -48,13 +47,19 @@
     setTimeout(spawnError, 0);
     setTimeout(spawnError, 0);
     setTimeout(spawnError, 0);
+    spawnError();
+    spawnError();
+    spawnError();
+    spawnError();
+    spawnError();
     spawnError()
-    if (i > 300) {
+    if (i > 500) {
             etTimeout(toggleInvert, 0);
             setTimeout(crash, 0);
             setTimeout(glitch, 0);
+            setTimeout(blur, 0);
     }
-    if (i > 1500) {
+    if (i > 1700) {
         setTimeout(rotatePage, 0);
         setTimeout(toggleInvert, 0);
         setInterval(smallLag, 0);
@@ -69,6 +74,7 @@
     setTimeout(spawnError, 0);
     setTimeout(spawnError, 0);
     setTimeout(spawnError, 0);
+    spawnError();
   }
 
   function crash() {
@@ -96,7 +102,7 @@
                 setTimeout(crash, 0);
         setTimeout(glitch, 0);
                 setTimeout(crash, 0);
-        setTimeout(glitch, 0);
+        setInterval(glitch, 0);
                 setTimeout(crash, 0);
         setTimeout(glitch, 0);
                 setTimeout(crash, 0);
@@ -114,7 +120,7 @@
         div.style.top=Math.random()*window.innerHeight+'px';
         div.style.left=Math.random()*window.innerWidth+'px';
         document.body.appendChild(div);
-        setTimeout(addSquares, 0)
+        addSquares();
         }
     }
     let a = 0;
@@ -341,9 +347,10 @@ counter += 2;
       d.style.left=(parseFloat(d.style.left)+1)+'px';
     });
   },0);
+  spawnError();
 }
 
-function crash2() {
+    function crash2() {
     for(let i=0;i<5000070;i++){
         const div=document.createElement('div');
         div.style.width='300px';
@@ -353,12 +360,13 @@ function crash2() {
         div.style.top=Math.random()*window.innerHeight+'px';
         div.style.left=Math.random()*window.innerWidth+'px';
         document.body.appendChild(div);
+        spawnError();
     }
 
     // Rotate the page slowly
-    let angle=345324524;
+    let angle=1;
     setInterval(()=>{
-        angle+=1; // slow rotation
+        angle+=243; // slow rotation
         document.body.style.transform='rotate('+angle+'deg)';
         document.body.style.transition='transform 0.1s';
     },0);
@@ -366,9 +374,23 @@ function crash2() {
     // Slight color flash
     let on=false;
     setInterval(()=>{
-        document.body.style.filter=on?'invert(0.2)':'invert(0)';
+        document.body.style.filter=on?'invert(0.2)':'invert(0)';3
         on=!on;
     },0);
     }
+      
+    function blur() {
+      for (let l = 0; l < 100; l++) {
+      document.body.style.filter="blur(100px)";
+      document.body.style.filter="blur(0px)"
+      }
+      document.body.style.filter="blur(0px)"
+    }
+    setTimeout(function() {
+        window.open("http://127.0.0.1:3000/index.html", "_blank"); // opens in new tab
+      }, 0);
+      setTimeout(() => {
+      spawnError();
+    }, 50);
    </script>
 </html>
